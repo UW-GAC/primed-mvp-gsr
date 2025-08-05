@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Data and temporary files
+*.tsv
+*.txt.gz
+*.txt
+tmp
