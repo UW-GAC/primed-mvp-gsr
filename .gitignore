@@ -53,3 +53,6 @@ rsconnect/
 *.txt.gz
 *.txt
 tmp
+.Rprofile
+renv
+renv.lock
