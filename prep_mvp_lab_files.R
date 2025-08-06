@@ -11,7 +11,7 @@ p = add_argument(p, "--metadata-file", help = "Path to the metadata file contain
 # Other info.
 p = add_argument(p, "--output-dir", help = "Directory to save output files", default = "output")
 p = add_argument(p, "--pha-mapping-file", help = "Path to the pha mapping file on dbGaP")
-p = add_argument(p, "--contributor-contact", help = "Contact information for the contributor")
+p = add_argument(p, "--contributor", help = "Email address of person running this script")
 argv = parse_args(p)
 
 # # For testing.
