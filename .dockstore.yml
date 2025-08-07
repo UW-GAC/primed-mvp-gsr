@@ -1,7 +1,7 @@
 version: 1.2
 workflows:
-   - name: prep_gsr_mvp_labs
+   - name: primed_gsr_mvp_labs
      subclass: WDL
-     primaryDescriptorPath: /prep_gsr_mvp_labs.wdl
+     primaryDescriptorPath: /primed_gsr_mvp_labs.wdl
      testParameterFiles:
-         - /prep_gsr_mvp_labs.json
+         - /primed_gsr_mvp_labs.json
