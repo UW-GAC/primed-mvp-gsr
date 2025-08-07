@@ -6,6 +6,7 @@ workflow prep_gsr_mvp_lab {
         String metadata_file
         String contributor_email
         String pha_mapping_file="https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs002453/analyses/phs002453.v1.p1_GIA_pha_mapping.xlsx"
+        Int? mem_gb
     }
 
     call prep_gsr_mvp_lab {
@@ -13,7 +14,8 @@ workflow prep_gsr_mvp_lab {
             gsr_file=gsr_file,
             metadata_file=metadata_file,
             pha_mapping_file=pha_mapping_file,
-            contributor_email=contributor_email
+            contributor_email=contributor_email,
+            mem_gb=mem_gb
     }
 
     meta {
@@ -28,6 +30,7 @@ task prep_gsr_mvp_lab {
         String metadata_file
         String pha_mapping_file
         String contributor_email
+        Int mem_gb = 16
     }
 
     command <<<
@@ -47,5 +50,6 @@ task prep_gsr_mvp_lab {
 
     runtime {
         docker: "uwgac/primed-mvp-gsr:0.0.1"
+        memory: "~{mem_gb} GB"
     }
 }
