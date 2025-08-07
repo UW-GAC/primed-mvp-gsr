@@ -23,6 +23,11 @@ workflow prep_gsr_mvp_lab {
             association_file_paths=prep_gsr_mvp_lab.association_files
     }
 
+    output {
+        File association_analysis_file = prep_gsr_mvp_lab.association_analysis_file
+        Array[File] association_files = prep_gsr_mvp_lab.association_files
+    }
+
     meta {
           author: "Adrienne stilp"
           email: "amstilp@uw.edu"
