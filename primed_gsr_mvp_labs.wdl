@@ -18,6 +18,11 @@ workflow prep_gsr_mvp_lab {
             mem_gb=mem_gb
     }
 
+    call prep_gsr_mvp_tables {
+        input:
+            association_file_paths=prep_gsr_mvp_lab.association_files
+    }
+
     meta {
           author: "Adrienne stilp"
           email: "amstilp@uw.edu"
@@ -51,5 +56,19 @@ task prep_gsr_mvp_lab {
     runtime {
         docker: "uwgac/primed-mvp-gsr:0.0.1"
         memory: "~{mem_gb} GB"
+    }
+}
+
+task prep_gsr_mvp_tables {
+    input {
+        Array[String] association_file_paths
+    }
+
+    command <<<
+        echo ~{sep=" " association_file_paths}
+    >>>
+
+    runtime {
+        docker: "uwgac/primed-mvp-gsr:0.0.1"
     }
 }
