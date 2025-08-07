@@ -56,3 +56,4 @@ tmp
 .Rprofile
 renv
 renv.lock
+cromwell-*

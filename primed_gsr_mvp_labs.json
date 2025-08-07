@@ -1,0 +1,5 @@
+{
+  "prep_gsr_mvp_lab.gsr_file": "https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs002453/analyses/GIA/MVP_R4.1000G_AGR.GIA.Labs_batch1.tar_expanded/Labs/MVP_R4.1000G_AGR.A1C_Max_INT.EAS.GIA.dbGaP.txt.gz",
+  "prep_gsr_mvp_lab.metadata_file": "https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs002453/analyses/GIA/MVP_R4.1000G_AGR.GIA.Labs_batch1.tar_expanded/Labs/MVP_R4.1000G_AGR.A1C_Max_INT.EAS.GIA.dbGaP.metadata.txt",
+  "prep_gsr_mvp_lab.contributor_email": "amstilp@uw.edu"
+}
