@@ -1,3 +1,4 @@
+library(tools)
 library(tidyverse)
 library(glue)
 library(argparser)
@@ -5,18 +6,16 @@ library(argparser)
 # Create an argument parser
 p = arg_parser("Prepare MVP lab files for GSR data tables")
 p = add_argument(p, "--gsr-file", help = "Path to the input file containing GSR data")
-p = add_argument(p, "--cloud-path", help = "Location of output files in cloud storage")
-p = add_argument(p, "--output-directory", help = "Directory to save output files", default = "output")
+p = add_argument(p, "--output-directory", help = "Directory (or cloud path) where output files should be saved")
 
 argv = parse_args(p)
 print(argv)
 
 # Check if the output directory already exists.
 output_directory = argv$output_directory
-if (dir.exists(output_directory)) {
-    stop("output directory exists")
+if (!str_starts(output_directory, "gs://") & dir.exists(output_directory)) {
+    stop("Output directory already exists: ", output_directory)
 }
-dir.create(output_directory)
 
 # Download the file.
 gsr_file = basename(argv$gsr_file)
@@ -26,45 +25,125 @@ download.file(argv$gsr_file, destfile=gsr_file)
 gsr_data <- read_tsv(gsr_file)
 gsr_data %>% print(n=6)
 
-# Split the file by chromosome
-gsr_data_split = gsr_data %>%
-    group_by(chrom) %>%
-    group_split()
-lapply(gsr_data_split, print, n=6)
+# Rename columns as necessary.
+#  [1] "SNP_ID"      "chrom"       "pos"         "ref"         "alt"
+#  [6] "ea"          "af"          "num_samples" "beta"        "sebeta"
+# [11] "pval"        "r2"          "q_pval"      "i2"          "direction"
+gsr_data %>%
+    rename(
+        rsID=SNP_ID,
+        chromosome=chrom,
+        position=pos,
+        effect_allele=ea,
+        # Note that ref and alt are not dbSNP ref/alt, but a different standard.
+        # See eLetters here: https://www.science.org/doi/10.1126/science.adj1182
+        other_allele=ref,
+        effect_allele_frequency=af,
+        p_value=pval,
+        se=sebeta,
+        n_samp=num_samples,
+    ) %>%
+    mutate(
+        # Spot checks imply that it is the forward strand.
+        strand="forward"
+    ) %>%
+    select(
+        -alt
+    )
 
+tempdir = tempfile()
+dir.create(tempdir)
+# Get basename of the files so we can append chromosome.
+file_base = gsr_file %>%
+    basename() %>%
+    str_replace(".txt.gz", "")
+# Get the final directory and remove the trailing slash if it exists.
+output_directory = argv$output_directory
+output_directory = str_replace(output_directory, "/$", "")
 
-# Write out association files.
-file_pattern = file.path(output_directory, basename(gsr_file)) %>%
-    str_replace(".txt.gz", ".chr{chrom}.txt.gz")
+# Split the GSR data by chromosome and store relevant information.
+gsr_data = gsr_data %>%
+    mutate(chr = chrom) %>%
+    group_by(chr) %>%
+    nest() %>%
+    mutate(
+        # Number of variants.
+        n_variants = map_int(data, ~ nrow(.x)),
+        basename = paste0(file_base, ".chr", chr, ".txt.gz"),
+        tempfile = file.path(tempdir, basename),
+        file = file.path(output_directory, basename),
+        file_type = "data",
+    )
 
-for (x in gsr_data_split) {
-    chrom = unique(x$chrom)
-    print(chrom)
-    stopifnot(length(chrom) == 1)
-    outfile = file_pattern %>% glue(chrom=chrom)
-    print(outfile)
-    write_tsv(x, outfile, na = "", append = FALSE)
+# Write out the temporary files and get md5sums.
+for (i in seq_along(gsr_data$chr)) {
+    write_tsv(gsr_data$data[[i]], gsr_data$tempfile[i], na = "", append = FALSE)
 }
 
+gsr_files = gsr_data %>%
+    select(-data)
+
+# Create a data dictionary.
+data_dictionary = c(
+    rsID = "rs identifier",
+    chromosome = "the chromosome that the variant is located on",
+    position = "the base pair location of the variant",
+    other_allele = "other allele of the variant",
+    effect_allele = "effect allele of the variant",
+    effect_allele_frequency = "frequency of the effect allele",
+    n_samp = "number of samples for this variant",
+    beta = "estimated effect size",
+    se = "standard error ofbetra",
+    p_value = "p-value",
+    # Pulled description from GWAMA documentation.
+    # https://genomics.ut.ee/en/tools
+    r2 = "Heterogeneity index I2 by Higgins et al 2003",
+    q_pval = "For meta-analysis, Cochran's heterogeneity statistic's p-value",
+    i2 = "For meta-analysis, ",
+    direction = "For meta-analysis, the direction of the effect size in each group",
+    strand = "DNA strand designation"
+)
+data_dictionary = data_dictionary[names(gsr_files$data[[1]])]
+if (any(is.na(data_dictionary))) {
+    stop("Data dictionary is missing some entries: ", paste(names(gsr_files)[is.na(data_dictionary)], collapse=", "))
+}
+data_dictionary = enframe(data_dictionary)
+
+# Write out the data dictionary and save it
+dd_file = file.path(tempdir, paste0(file_base, "_DD.tsv"))
+write_tsv(data_dictionary, dd_file)
+gsr_files = gsr_files %>%
+    mutate(
+        chr=as.character(chr),
+        n_variants=as.character(n_variants),
+    ) %>%
+    bind_rows(tibble(
+        tempfile = dd_file,
+        chr = "None",
+        n_variants = "None",
+        file = file.path(output_directory, paste0(file_base, "_DD.tsv")),
+        file_type = "data dictionary",
+    ))
+
+# Calculate md5sums.
+gsr_files = gsr_files %>%
+    mutate(md5sum = unname(md5sum(tempfile)))
+
+# Save the file in the final location.
 # If cloud path is provided, copy files to cloud storage.
-cloud_path = argv$cloud_path
-if (!is.na(cloud_path)) {
-    # Remove trailing slash if it exists.
-    cloud_path = str_replace(cloud_path, "/$", "")
-    "gsutil -m cp {output_directory}/* {cloud_path}" %>%
+if (str_starts(output_directory, "gs://")) {
+    "gsutil -m cp {tempdir}/* {output_directory}" %>%
         glue() %>%
         system(intern = TRUE)
-    final_files = file.path(cloud_path, list.files(output_directory))
-    unlink(output_directory, recursive = TRUE)
+
 } else {
-    final_files = file.path(output_directory, list.files(output_directory))
+    # If not a cloud path, just move the files.
+    file.rename(tempdir, output_directory)
 }
 
-# Save the final files to a text file.
-x = tibble(file = final_files) %>%
-    # Extract the chromosome from the file name using a regular expression.
-    mutate(
-        chrom = str_match(file, "chr(.+?).txt.gz")[, 2]
-    )
-print(x)
-write_tsv(x, "gsr_files.tsv")
+# Remove the actual data and write the file out.
+gsr_files = gsr_files %>%
+    select(file, chr, n_variants, md5sum)
+
+print(gsr_files)
+write_tsv(gsr_files, "gsr_files.tsv")
