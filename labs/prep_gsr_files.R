@@ -7,8 +7,8 @@ library(argparser)
 p = arg_parser("Prepare MVP lab files for GSR data tables")
 p = add_argument(p, "--gsr-file", help = "Path to the input file containing GSR data")
 p = add_argument(p, "--output-directory", help = "Directory (or cloud path) where output files should be saved")
-
 argv = parse_args(p)
+
 print(argv)
 
 # Check if the output directory already exists.
@@ -29,7 +29,7 @@ gsr_data %>% print(n=6)
 #  [1] "SNP_ID"      "chrom"       "pos"         "ref"         "alt"
 #  [6] "ea"          "af"          "num_samples" "beta"        "sebeta"
 # [11] "pval"        "r2"          "q_pval"      "i2"          "direction"
-gsr_data %>%
+gsr_data = gsr_data %>%
     rename(
         rsID=SNP_ID,
         chromosome=chrom,
@@ -63,7 +63,7 @@ output_directory = str_replace(output_directory, "/$", "")
 
 # Split the GSR data by chromosome and store relevant information.
 gsr_data = gsr_data %>%
-    mutate(chr = chrom) %>%
+    mutate(chr = chromosome) %>%
     group_by(chr) %>%
     nest() %>%
     mutate(
@@ -103,11 +103,13 @@ data_dictionary = c(
     direction = "For meta-analysis, the direction of the effect size in each group",
     strand = "DNA strand designation"
 )
-data_dictionary = data_dictionary[names(gsr_files$data[[1]])]
+data_dictionary = data_dictionary[names(gsr_data$data[[1]])]
 if (any(is.na(data_dictionary))) {
     stop("Data dictionary is missing some entries: ", paste(names(gsr_files)[is.na(data_dictionary)], collapse=", "))
 }
-data_dictionary = enframe(data_dictionary)
+data_dictionary = enframe(data_dictionary, name="field", value="value")
+
+stopifnot(all(names(gsr_data$data[[1]]) == data_dictionary$field))
 
 # Write out the data dictionary and save it
 dd_file = file.path(tempdir, paste0(file_base, "_DD.tsv"))
