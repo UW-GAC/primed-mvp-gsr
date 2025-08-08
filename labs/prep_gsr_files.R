@@ -67,4 +67,4 @@ x = tibble(file = final_files) %>%
         chrom = str_match(file, "chr(.+?).txt.gz")[, 2]
     )
 print(x)
-write_tsv(x, "gsr_files.txt")
+write_tsv(x, "gsr_files.tsv")
