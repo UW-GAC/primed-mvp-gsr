@@ -108,7 +108,7 @@ dir.create(argv$output_dir)
 
 # Write out the association analysis file.
 association_analysis_file = file.path(argv$output_dir, "association_analysis.tsv")
-write_tsv(tibble::enframe(association_analysis), association_analysis_file)
+write_tsv(tibble::enframe(association_analysis, name="field", value="value"), association_analysis_file)
 
 # Write out the files table.
 gsr_files_file = file.path(argv$output_dir, "association_file.tsv")
