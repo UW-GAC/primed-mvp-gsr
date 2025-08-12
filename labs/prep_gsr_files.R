@@ -122,7 +122,6 @@ gsr_files = gsr_files %>%
     bind_rows(tibble(
         tempfile = dd_file,
         chr = "None",
-        n_variants = "None",
         file = file.path(output_directory, paste0(file_base, "_DD.tsv")),
         file_type = "data dictionary",
     ))
@@ -143,9 +142,9 @@ if (str_starts(output_directory, "gs://")) {
     file.rename(tempdir, output_directory)
 }
 
-# Remove the actual data and write the file out.
+# Write the list of files out.
 gsr_files = gsr_files %>%
-    select(file, chr, n_variants, md5sum)
+    select(file, chr, n_variants, md5sum, file_type)
 
 print(gsr_files)
 write_tsv(gsr_files, "gsr_files.tsv")
