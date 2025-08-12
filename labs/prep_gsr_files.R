@@ -38,10 +38,13 @@ gsr_data = gsr_data %>%
         # Note that ref and alt are not dbSNP ref/alt, but a different standard.
         # See eLetters here: https://www.science.org/doi/10.1126/science.adj1182
         other_allele=ref,
-        effect_allele_frequency=af,
+        effect_allele_freq=af,
         p_value=pval,
         se=sebeta,
         n_samp=num_samples,
+        imputation_quality_score=r2,
+        heterogeneity_p_value=q_pval,
+        heterogeneity_I2=i2,
     ) %>%
     mutate(
         # Spot checks imply that it is the forward strand.
@@ -90,16 +93,16 @@ data_dictionary = c(
     position = "the base pair location of the variant",
     other_allele = "other allele of the variant",
     effect_allele = "effect allele of the variant",
-    effect_allele_frequency = "frequency of the effect allele",
+    effect_allele_freq = "frequency of the effect allele",
     n_samp = "number of samples for this variant",
     beta = "estimated effect size",
     se = "standard error ofbetra",
     p_value = "p-value",
     # Pulled description from GWAMA documentation.
     # https://genomics.ut.ee/en/tools
-    r2 = "Heterogeneity index I2 by Higgins et al 2003",
-    q_pval = "For meta-analysis, Cochran's heterogeneity statistic's p-value",
-    i2 = "For meta-analysis, ",
+    imputation_quality_score = "Imputation r2 for the variant",
+    heterogeneity_p_value = "For meta-analysis, Cochran's heterogeneity statistic's p-value",
+    heterogeneity_I2 = "For meta-analysis, heterogeneity index I2 by Higgins et al 2003",
     direction = "For meta-analysis, the direction of the effect size in each group",
     strand = "DNA strand designation"
 )
