@@ -1,5 +1,7 @@
 version 1.0
 
+import "https://raw.githubusercontent.com/UW-GAC/primed-file-checks/refs/heads/main/validate_gsr_model.wdl" as validate_gsr_model
+
 workflow prep_gsr_mvp_lab {
     input {
         String gsr_file
@@ -7,6 +9,11 @@ workflow prep_gsr_mvp_lab {
         String contributor_email
         String output_directory
         String pha_mapping_file="https://ftp.ncbi.nlm.nih.gov/dbgap/studies/phs002453/analyses/phs002453.v1.p1_GIA_pha_mapping.xlsx"
+        String model_url
+        String workspace_name
+        String workspace_namespace
+        Boolean overwrite = false
+        Boolean import_tables = false
         Int? mem_gb
     }
 
@@ -26,9 +33,23 @@ workflow prep_gsr_mvp_lab {
             contributor_email=contributor_email
     }
 
+    call validate_gsr_model.validate_gsr_model {
+        input:
+            table_files = prep_gsr_tables.tables_file,
+            model_url = model_url,
+            workspace_name = workspace_name,
+            workspace_namespace = workspace_namespace,
+            overwrite = overwrite,
+            import_tables = overwrite
+    }
+
     output {
-        File association_analysis_file = prep_gsr_tables.association_analysis_file
-        File association_files_file = prep_gsr_tables.association_file
+        File validation_report = validate_gsr_model.validation_report
+        Array[File] tables = validate_gsr_model.tables
+        String? md5_check_summary = validate_gsr_model.md5_check_summary
+        File? md5_check_details = validate_gsr_model.md5_check_details
+        String? data_report_summary = validate_gsr_model.data_report_summary
+        File? data_report_details = validate_gsr_model.data_report_details
     }
 
     meta {
@@ -79,11 +100,15 @@ task prep_gsr_tables {
             --metadata-file ~{metadata_file} \
             --pha-mapping-file ~{pha_mapping_file} \
             --contributor ~{contributor_email}
+
+        cat '{"association_analysis": "","association_file": ""}' %>% "tables.txt"
     >>>
 
     output {
         File association_analysis_file = "output/association_analysis.tsv"
         File association_file = "output/association_file.tsv"
+        Map[String, File] tables_file = read_map("tables.txt")
+
     }
 
     runtime {
