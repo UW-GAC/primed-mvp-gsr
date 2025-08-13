@@ -7,5 +7,5 @@
   "prep_gsr_mvp_lab.workspace_name": "primed-sandbox",
   "prep_gsr_mvp_lab.workspace_namespace": "primed-adrienne",
   "prep_gsr_mvp_lab.import_tables": true,
-  "prep_gsr_mvp_lab.overwrite": false
+  "prep_gsr_mvp_lab.overwrite": true
 }

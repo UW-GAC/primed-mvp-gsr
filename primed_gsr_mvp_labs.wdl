@@ -35,7 +35,7 @@ workflow prep_gsr_mvp_lab {
 
     call validate_gsr_model.validate_gsr_model {
         input:
-            table_files = prep_gsr_tables.tables_file,
+            table_files = prep_gsr_tables.table_files,
             model_url = model_url,
             workspace_name = workspace_name,
             workspace_namespace = workspace_namespace,
@@ -100,15 +100,13 @@ task prep_gsr_tables {
             --metadata-file ~{metadata_file} \
             --pha-mapping-file ~{pha_mapping_file} \
             --contributor ~{contributor_email}
-
-        cat '{"association_analysis": "","association_file": ""}' %>% "tables.txt"
     >>>
 
     output {
-        File association_analysis_file = "output/association_analysis.tsv"
-        File association_file = "output/association_file.tsv"
-        Map[String, File] tables_file = read_map("tables.txt")
-
+        Map[String, File] table_files = {
+            "association_analysis": "output/association_analysis.tsv",
+            "association_file": "output/association_file.tsv"
+        }
     }
 
     runtime {
